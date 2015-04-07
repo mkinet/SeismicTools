@@ -66,17 +66,17 @@ class ThgeAnalysis():
         th_shake.ConvertFromThge(self.th,n)
         return th_shake
     
-    def ReadTargetSpectra(self)
-        filename=self.inputfile.splitext()[0]
-        filename=filename+'.spe'
-        # read spectra from file
-        # frq=...
-        # spec=...
+    def ReadTargetSpectra(self):pass
+        # filename=self.inputfile.splitext()[0]
+        # filename=filename+'.spe'
+        # # read spectra from file
+        # # frq=...
+        # # spec=...
         
-        targetspec=ResponseSpectra(frequency=[frq],spectra=[spec],
-                                   damping=0.05,
-                                   name='THGE target spectra')
-        return targetspec
+        # targetspec=ResponseSpectra(frequency=[frq],spectra=[spec],
+        #                            damping=0.05,
+        #                            name='THGE target spectra')
+        # return targetspec
     
 class ThThge(TimeHistory):
     def __init__(self,filename=None):
@@ -114,3 +114,54 @@ def GenerTh(fname):
     
     A=ThThge()
     A.GenerTh(fname)
+
+
+
+
+def TestThge():
+    specfile='./test_thge.txt'
+    text='Period (s), SA (g)\n'+\
+    '0.000E+00, 3.485E-02\n'+\
+    '5.000E-02, 4.989E-02\n'+\    
+    '1.000E-01, 7.687E-02\n'+\
+    '5.000E-01, 5.176E-02\n'+\
+    '2.000E+00, 1.152E-02'
+    f=open(specfile,'w')
+    f.write(text)
+    f.close()
+    spectra=ResponseSpectra()
+    spectra.ReadFromCsv(specfile,type='period')
+    A1=ThgeAnalysis('./test_thge.dat')
+    seed=100000
+    A1.GenerInputFile(spectra,seed)
+    A1.GenerTh()
+    shake_th=A1.ConvertToShake(n=3024)
+    thname=os.path.join(workdir,name+'_'+case+'.png')
+    shake_th.Plot(thname,ylabel='Acceleration (g)')
+    SeismicTools.plt.clf()
+
+def TestThge2():
+    specfile='./test_thge.txt'
+    text='Frequency (s), SA (g)\n'+\
+    '.5, 1.152E-02\n'+\
+    '2.0, 5.176E-02\n'+\
+    '10.0, 7.687E-02\n'+\
+    '20.0, 4.989E-02\n'+\
+    '35.0, 3.485E-02'
+    f=open(specfile,'w')
+    f.write(text)
+    f.close()
+    spectra=ResponseSpectra()
+    spectra.ReadFromCsv(specfile,type='frequency')
+    A1=ThgeAnalysis('./test_thge.dat')
+    seed=100000
+    A1.GenerInputFile(spectra,seed,type='frequency')
+    A1.GenerTh()
+    shake_th=A1.ConvertToShake(n=3024)
+    thname=os.path.join(workdir,name+'_'+case+'.png')
+    shake_th.Plot(thname,ylabel='Acceleration (g)')
+    SeismicTools.plt.clf()
+
+if __name__=="__main__":
+    #TestThge()
+    TestThge2()   
