@@ -32,3 +32,16 @@ capabilities:
 - correlation calculation between two time-histories
 - improve methods to make average and enveloppe (so that they don't 
   need to be defined at the same points).
+
+
+## Prerequisites
+
+The following tools should be installed: 
+
+- python V2.7 (not 3.x)
+- numpy
+- matplotlib
+- xlwt
+
+- SHAKE 2000
+- THGE
