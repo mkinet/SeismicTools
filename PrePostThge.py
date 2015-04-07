@@ -14,7 +14,7 @@ class ThgeAnalysis():
         self.th=ThThge(filename=self.outputfile)
         
     def GenerTh(self):
-        '''Function to launche THGE.
+        '''Function to launch THGE.
         Arguments : inputfile : full-path location of inputfile'''
         # Change working directory
         self.CleanBeforeRunning()
@@ -37,27 +37,65 @@ class ThgeAnalysis():
                                 '.psd','.res','.spe','.trc')):
                     os.remove(filename)
                     
-    def GenerInputFile(self,spectra,seed):
-        f=open(self.inputfile,'w')
-        line=' %s    20.480     1.000     8.000     3.000\n'\
-            % str(spectra.spectra[0])
-        f.write(line)
-        line=' 1.100  25\n'
-        f.write(line)
-        line=' '+str(seed)+'\n'+' 0 0\n'
-        f.write(line)
-        line=' '+str(spectra.npoints)+' '+'0 1     0.05\n'
-        f.write(line)
-        for idx in range(spectra.npoints):
-            line=3*' '+str(spectra.period[idx])+5*' '+\
-            str(spectra.spectra[idx])+'\n'
-            f.write(line)
-        line='    -1.000    -1.000\n'
-        f.write(line)
-        line=' 0     0.100   100.000     1.000\n'
-        f.write(line)
-        f.close()
+    # def GenerInputFile(self,spectra,seed):
+    #     f=open(self.inputfile,'w')
+    #     line=' %s    20.480     1.000     8.000     3.000\n'\
+    #         % str(spectra.spectra[0])
+    #     f.write(line)
+    #     line=' 1.100  25\n'
+    #     f.write(line)
+    #     line=' '+str(seed)+'\n'+' 0 0\n'
+    #     f.write(line)
+    #     line=' '+str(spectra.npoints)+' '+'0 1     0.05\n'
+    #     f.write(line)
+    #     for idx in range(spectra.npoints):
+    #         line=3*' '+str(spectra.period[idx])+5*' '+\
+    #         str(spectra.spectra[idx])+'\n'
+    #         f.write(line)
+    #     line='    -1.000    -1.000\n'
+    #     f.write(line)
+    #     line=' 0     0.100   100.000     1.000\n'
+    #     f.write(line)
+    #     f.close()
 
+
+    def GenerInputFile(self,spectra,seed,type='period',\
+                        duree=20.480,damping=0.05,srpcheck=False):
+        # modified by VDA
+        #    - changed input to allow a definition of the
+        #      input file either through period-acceleration couples or through
+        #      frequency-acceleration couples.
+        # modified by MAK (07/04/2015):
+        #    - Improved VDA Implementation for period or frequency
+        #      definition
+        if type=='period':
+            zpa=spectra.spectra[0]
+            typ=1
+            line=''
+            for idx in range(spectra.npoints):
+                line+='   %11.3f   %11.3f\n'\
+                % (spectra.period[idx],spectra.spectra[idx])
+        elif type=='frequency':
+            zpa=spectra.spectra[-1]
+            typ=0
+            line=''
+            for idx in range(spectra.npoints):
+                line+='   %11.3f   %11.3f\n'\
+                % (spectra.frequency[idx],spectra.spectra[idx])
+        else:
+            raise SyntaxError("format of spectrum is badly specified.\
+                       Use either type='period', or type='frequency'")		     		 
+        
+        f=open(self.inputfile,'w')
+        text='%6.3f    %6.3f     1.000     8.000     3.000 \n'%(zpa,duree)
+        text+=' 1.100   25\n'
+        text+='%7.0f\n 0 0\n'% (seed)
+        text+=' %3.0f 0 %1d     %5.3f\n'% (spectra.npoints,typ,damping)
+        text+=line
+        text+='    -1.000    -1.000\n'
+        text+=' %1d     0.200    34.000     1.000\n'% srpcheck
+        f.write(text)
+        f.close()
 
     def ConvertToShake(self,n=8192):
         #self.th.ReadFile()
@@ -116,13 +154,11 @@ def GenerTh(fname):
     A.GenerTh(fname)
 
 
-
-
 def TestThge():
     specfile='./test_thge.txt'
     text='Period (s), SA (g)\n'+\
     '0.000E+00, 3.485E-02\n'+\
-    '5.000E-02, 4.989E-02\n'+\    
+    '5.000E-02, 4.989E-02\n'+\
     '1.000E-01, 7.687E-02\n'+\
     '5.000E-01, 5.176E-02\n'+\
     '2.000E+00, 1.152E-02'
@@ -136,9 +172,9 @@ def TestThge():
     A1.GenerInputFile(spectra,seed)
     A1.GenerTh()
     shake_th=A1.ConvertToShake(n=3024)
-    thname=os.path.join(workdir,name+'_'+case+'.png')
+    thname='test_thge.png'
     shake_th.Plot(thname,ylabel='Acceleration (g)')
-    SeismicTools.plt.clf()
+    plt.clf()
 
 def TestThge2():
     specfile='./test_thge.txt'
@@ -158,10 +194,10 @@ def TestThge2():
     A1.GenerInputFile(spectra,seed,type='frequency')
     A1.GenerTh()
     shake_th=A1.ConvertToShake(n=3024)
-    thname=os.path.join(workdir,name+'_'+case+'.png')
+    thname='test_thge.png'
     shake_th.Plot(thname,ylabel='Acceleration (g)')
-    SeismicTools.plt.clf()
+    plt.clf()
 
 if __name__=="__main__":
-    #TestThge()
-    TestThge2()   
+    TestThge()
+    #TestThge2()   
