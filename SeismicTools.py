@@ -268,8 +268,8 @@ class ResponseSpectra(object):
         elif type=='frequency':
             self.SetFrequency(v1)
         else:
-            raise SyntaxError("format of spectrum is badly specified.
-                      Use either type='period', or type='frequency'")
+            raise SyntaxError("format of spectrum is badly specified.\
+                              Use either type='period', or type='frequency'")
                         
         # assume the spectra is given for a damping of 0.05, it
         # doesn't matter
