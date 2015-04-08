@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class TimeHistory(object):
+    
     def __init__(self,accel=[],dt=0.0,time=[],filename=None,\
                  fformat=None):
         if filename==None:
@@ -29,14 +30,14 @@ class TimeHistory(object):
     def UndefinedFormat(self,filename):
         raise IOError('Format of file must be specified')
                  
-    def ReadFromCsv(self,filename):
-        
+    def ReadFromCsv(self,filename,skip=1):    
         '''Read accelerogram from csv file. assumed format is the
         time values in the first column, the acceleration in the
-        second column. The values start at the second line.'''
-
+        second column. By default, it is assumed that the values
+        start at the second line.'''
         f=open(filename,'r')
-        _unused=f.next()
+        for i in range(skip):
+            _unused=f.next()
         v1=[]
         v2=[]
         for line in f:
@@ -47,8 +48,7 @@ class TimeHistory(object):
         self.SetTime(v1)
         self.SetValues(v2)
 
-    def ReadFromAcc(self,filename):
-        
+    def ReadFromAcc(self,filename):        
         '''Read accelerogram from acc file. The timestep is given on
         the first line. The acceleration is in the first column. The
         values start at the second line.'''
@@ -163,12 +163,12 @@ class ResponseSpectra(object):
         self.frequency=np.array(frq,dtype='float64')
         self.npoints=len(frq)
 
-    def GetFrequency(self):
-        return self.frequency
-
     def SetPeriod(self,period):
         self.period=np.array(period,dtype='float64')
         self.npoints=len(period)
+
+    def GetFrequency(self):
+        return self.frequency
 
     def GetPeak(self):
         if self.IsSet():
@@ -262,7 +262,6 @@ class ResponseSpectra(object):
             
             self.SetPeriod(v1)
             # If conversion to frequency use:
-
             v1=[1/x for x in v1]
             self.SetFrequency(v1)
         elif type=='frequency':
@@ -312,17 +311,6 @@ class SpectraFamily(object):
                 ws.write(i+1,1,spectra.spectra[i])
         wb.save(path)
         
-    def Plot_old(self,dir=os.getcwd(),filename='PlotSpecFamily.png',ylabel='',show=0,axis=''):
-        '''Plot all the spectra included in the family on one single graph'''
-        outfile=os.path.join(dir,filename)
-        for spectra in self.family:
-            spectra.Plot(ylabel=ylabel,axis=axis)
-        if show:
-            plt.show()
-        else:   
-            plt.savefig(outfile,bbox_inches='tight')
-
-## New version using kwargs
     def Plot(self,dir=os.getcwd(),filename='PlotSpecFamily.png',show=0,**kwargs):
         '''Plot all the spectra included in the family on one single graph'''
         outfile=os.path.join(dir,filename)
