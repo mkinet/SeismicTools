@@ -162,10 +162,18 @@ class ResponseSpectra(object):
     def SetFrequency(self,frq):
         self.frequency=np.array(frq,dtype='float64')
         self.npoints=len(frq)
+        if not self.period:
+            #test succeed if frequency is not set yet
+            v1=[1.0/x if x < 100.0 else 0.0  for x in v1]
+            self.SetPeriod(v1)
 
     def SetPeriod(self,period):
         self.period=np.array(period,dtype='float64')
         self.npoints=len(period)
+        if not self.frequency:
+            #test succeed if frequency is not set yet
+            v1=[1.0/x if x != 0 else 100.0  for x in v1]
+            self.SetFrequency(v1)
 
     def GetFrequency(self):
         return self.frequency
@@ -261,9 +269,6 @@ class ResponseSpectra(object):
                 v1[0]=0.01
             
             self.SetPeriod(v1)
-            # If conversion to frequency use:
-            v1=[1/x for x in v1]
-            self.SetFrequency(v1)
         elif type=='frequency':
             self.SetFrequency(v1)
         else:
@@ -325,8 +330,8 @@ class SpectraFamily(object):
     def Envelope(self):
             
         '''Compute the enveloppe of the spectra family. For the moment it considers
-        that all spectra from the list have the same frequency range '''
-
+        that all spectra from the list have the same frequency range
+        '''
         # Initialize the envelope to the first element of the family
         self.envelope.CopySpectra(self.family[0])
         for spectra in self.family[1:]:
