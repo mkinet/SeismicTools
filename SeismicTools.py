@@ -164,7 +164,7 @@ class ResponseSpectra(object):
         self.npoints=len(frq)
         if not self.period:
             #test succeed if frequency is not set yet
-            v1=[1.0/x if x < 100.0 else 0.0  for x in v1]
+            v1=[1.0/x if x < 100.0 else 0.01  for x in v1]
             self.SetPeriod(v1)
 
     def SetPeriod(self,period):
@@ -227,16 +227,13 @@ class ResponseSpectra(object):
         #location : lower right corner
         plt.legend(loc=0)
         plt.xlabel("Frequency")
-
         if axis:
-           plt.axis(axis) 
-        
+           plt.axis(axis)     
         if not ylabel:
             ylabel="Acceleration"
         plt.ylabel(ylabel)
         #Add grid on the graph
         plt.grid(b=True, which='both',color='0.65',linestyle='-')
-
         if show:
             plt.show()
         elif not filename:
@@ -244,16 +241,17 @@ class ResponseSpectra(object):
         else:
             plt.savefig(filename, bbox_inches='tight')
 
-    def ReadFromCsv(self,filename,type='period',header='true'):        
+    def ReadFromCsv(self,filename,type='period',skip=1):        
         '''
         Initialize from a csv file. We assume by default that the
         format of the file is period in the first column and
         acceleration in the second. An alternative is to specify the
         frequency in the first column and acceleration in the second,
         by setting type to "frequency"'''
-        
+
+        # Open a read the file
         f=open(filename,'r')
-        if header:
+        for i in range(skip):
             _unused=f.next()            
         v1=[]
         v2=[]
@@ -261,15 +259,27 @@ class ResponseSpectra(object):
             v=[float(x) for x in line.split(',')]
             v1.append(v[0])
             v2.append(v[1])
-        if type=='period':    
-            # The first period in the list cannot be zero, which is an
-            # infinite frequency. Hence I put it to 0.01 which is ~100Hz
-            # and equivalent to the ZPA.
-            if v1[0]==0.0:
-                v1[0]=0.01
+        f.close()
+
+        # The input can be period|accel or frequency|accel. The
+        # treatment is different:
+        if type=='period':
+            # First, we order the two columns so that the acceleration
+            # vector correspond to increasing frequencies. The
+            # following lines sort the two lists according to
+            # v1, in descending order.
+            v1, v2 = (list(t) for t in zip(*sorted(zip(v1, v22),reverse=True)))
             
+            # The last period in the list cannot be zero, which is an
+            # infinite frequency. Hence I put it to 0.01 which is
+            # ~100Hz and equivalent to the ZPA.
+            if v1[-1]==0.0:
+                v1[-1]=0.01            
             self.SetPeriod(v1)
         elif type=='frequency':
+            # We also impose a sort, just in case the values were not
+            # sorted in the csv file, but this time ascending.
+            v1, v2 = (list(t) for t in zip(*sorted(zip(v1, v22))))        
             self.SetFrequency(v1)
         else:
             raise SyntaxError("format of spectrum is badly specified.\
@@ -278,8 +288,6 @@ class ResponseSpectra(object):
         # assume the spectra is given for a damping of 0.05, it
         # doesn't matter
         self.SetSpectra(v2)
-
-        f.close()
         
     def CopySpectra(self,spec):
         self.spectra=spec.spectra
