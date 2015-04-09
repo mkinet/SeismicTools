@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class TimeHistory(object):
-    
     def __init__(self,accel=[],dt=0.0,time=[],filename=None,\
                  fformat=None):
         if filename==None:
@@ -127,9 +126,13 @@ class TimeHistory(object):
         
     
 class ResponseSpectra(object):
-    def __init__(self,frequency=[],spectra=[],damping=0.0,\
+    def __init__(self,frequency=[],spectra=[],damping=0.05,\
                  name=''):
-        self.npoints=0
+        if len(frequency)!=len(spectra):
+            raise SyntaxError('Frequency and spectra should have the\
+                              same length')
+                              
+        self.npoints=len(frequency)
         self.damping=damping
         self.SetSpectra(spectra)
         self.SetFrequency(frequency)
@@ -160,21 +163,28 @@ class ResponseSpectra(object):
         self.spectra=np.array(accel,dtype='float64')
 
     def SetFrequency(self,frq):
+        # Set the frequency at which the spectra is defined. The
+        # argument frq is a list of values already sorted in ascending
+        # order.
+        # MAK (08/04/2015): The function also sets the period now.
         self.frequency=np.array(frq,dtype='float64')
         self.npoints=len(frq)
-        if not self.period:
-            #test succeed if frequency is not set yet
-            v1=[1.0/x if x < 100.0 else 0.01  for x in v1]
-            self.SetPeriod(v1)
+        # Set the period from the frequency
+        v1=[1.0/x if x < 100.0 else 0.0  for x in self.frequency]
+        self.period=np.array(v1,dtype='float64')
 
     def SetPeriod(self,period):
+        # function called if the response spectra is initialized by
+        # (period,acceleration) couples in a text file for instance.
+        # The argument period is a list, already sorted in descending
+        # order.
+        # MAK (08/04/2014): The function also sets the acceleration.
         self.period=np.array(period,dtype='float64')
         self.npoints=len(period)
-        if not self.frequency:
-            #test succeed if frequency is not set yet
-            v1=[1.0/x if x != 0 else 100.0  for x in v1]
-            self.SetFrequency(v1)
-
+        #set the frequency
+        v1=[1.0/x if x != 0 else 100.0  for x in self.period]
+        self.frequency=np.array(v1,dtype='float64')
+        
     def GetFrequency(self):
         return self.frequency
 
@@ -186,10 +196,12 @@ class ResponseSpectra(object):
         
     def GetZPA(self):
         """Return the ZPA of the spectrum."""
+        # MAK (09/04/2015): The convention has changed and the ZPA is
+        # the last value in teh acceleration spectra.
         if self.IsSet():
-            # We assume that the ZPA is the first value of the spectra
+            # We assume that the ZPA is the last value of the spectra
             # vector. THIS MUST BE TAKEN WITH CAUTION!!
-            return self.spectra[0]
+            return self.spectra[-1]
         else:
             return 0
         
@@ -248,8 +260,12 @@ class ResponseSpectra(object):
         acceleration in the second. An alternative is to specify the
         frequency in the first column and acceleration in the second,
         by setting type to "frequency"'''
-
-        # Open a read the file
+        # MAK(08/04/2015): changed to allow definition
+        # from (period,acc) couples or from (frq,acc) couples.  Open a
+        # read the file. The convention is that the acceleration
+        # values are sorted in increasing order of frequencies. Hence,
+        # the list of frequencies is in ascending order, while the
+        # list of period is in descending order.        
         f=open(filename,'r')
         for i in range(skip):
             _unused=f.next()            

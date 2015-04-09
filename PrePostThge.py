@@ -36,28 +36,6 @@ class ThgeAnalysis():
             if any(filename.endswith(x) for x in ('.out','.err',
                                 '.psd','.res','.spe','.trc')):
                     os.remove(filename)
-                    
-    # def GenerInputFile(self,spectra,seed):
-    #     f=open(self.inputfile,'w')
-    #     line=' %s    20.480     1.000     8.000     3.000\n'\
-    #         % str(spectra.spectra[0])
-    #     f.write(line)
-    #     line=' 1.100  25\n'
-    #     f.write(line)
-    #     line=' '+str(seed)+'\n'+' 0 0\n'
-    #     f.write(line)
-    #     line=' '+str(spectra.npoints)+' '+'0 1     0.05\n'
-    #     f.write(line)
-    #     for idx in range(spectra.npoints):
-    #         line=3*' '+str(spectra.period[idx])+5*' '+\
-    #         str(spectra.spectra[idx])+'\n'
-    #         f.write(line)
-    #     line='    -1.000    -1.000\n'
-    #     f.write(line)
-    #     line=' 0     0.100   100.000     1.000\n'
-    #     f.write(line)
-    #     f.close()
-
 
     def GenerInputFile(self,spectra,seed,type='period',\
                         duree=20.480,damping=0.05,srpcheck=False):
@@ -69,12 +47,15 @@ class ThgeAnalysis():
         #    - Improved VDA Implementation for period or frequency
         #      definition
         if type=='period':
-            zpa=spectra.spectra[0]
+            zpa=spectra.spectra[-1]
             typ=1
             line=''
+            # Reorder so that period is ascending
+            per, acc = (list(t) for t in\
+                         zip(*sorted(zip(spectra.period,spectra.spectra))))        
             for idx in range(spectra.npoints):
                 line+='   %11.3f   %11.3f\n'\
-                % (spectra.period[idx],spectra.spectra[idx])
+                % (per[idx],acc[idx])
         elif type=='frequency':
             zpa=spectra.spectra[-1]
             typ=0
@@ -166,15 +147,15 @@ def TestThge():
     f.write(text)
     f.close()
     spectra=ResponseSpectra()
-    spectra.ReadFromCsv(specfile,type='period')
-    A1=ThgeAnalysis('./test_thge.dat')
-    seed=100000
-    A1.GenerInputFile(spectra,seed)
-    A1.GenerTh()
-    shake_th=A1.ConvertToShake(n=3024)
-    thname='test_thge.png'
-    shake_th.Plot(thname,ylabel='Acceleration (g)')
-    plt.clf()
+    #spectra.ReadFromCsv(specfile,type='period')
+    # A1=ThgeAnalysis('./test_thge.dat')
+    # seed=100000
+    # A1.GenerInputFile(spectra,seed)
+    # A1.GenerTh()
+    # shake_th=A1.ConvertToShake(n=3024)
+    # thname='test_thge.png'
+    # shake_th.Plot(thname,ylabel='Acceleration (g)')
+    # plt.clf()
 
 def TestThge2():
     specfile='./test_thge.txt'
