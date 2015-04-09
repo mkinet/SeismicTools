@@ -284,7 +284,7 @@ class ResponseSpectra(object):
             # vector correspond to increasing frequencies. The
             # following lines sort the two lists according to
             # v1, in descending order.
-            v1, v2 = (list(t) for t in zip(*sorted(zip(v1, v22),reverse=True)))
+            v1, v2 = (list(t) for t in zip(*sorted(zip(v1, v2),reverse=True)))
             
             # The last period in the list cannot be zero, which is an
             # infinite frequency. Hence I put it to 0.01 which is
@@ -295,7 +295,7 @@ class ResponseSpectra(object):
         elif type=='frequency':
             # We also impose a sort, just in case the values were not
             # sorted in the csv file, but this time ascending.
-            v1, v2 = (list(t) for t in zip(*sorted(zip(v1, v22))))        
+            v1, v2 = (list(t) for t in zip(*sorted(zip(v1, v2))))        
             self.SetFrequency(v1)
         else:
             raise SyntaxError("format of spectrum is badly specified.\

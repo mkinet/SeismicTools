@@ -39,35 +39,34 @@ class ThgeAnalysis():
 
     def GenerInputFile(self,spectra,seed,type='period',\
                         duree=20.480,damping=0.05,srpcheck=False):
-        # modified by VDA
-        #    - changed input to allow a definition of the
-        #      input file either through period-acceleration couples or through
-        #      frequency-acceleration couples.
-        # modified by MAK (07/04/2015):
-        #    - Improved VDA Implementation for period or frequency
-        #      definition
+        # VDA (02/04/2015): changed input to allow a definition of the
+        #      input file either through period-acceleration couples
+        #      or through frequency-acceleration couples.
+        # MAK (07/04/2015): Improved VDA Implementation for period or
+        #      frequency definition
+        
+        zpa=spectra.GetZPA()
+        line=''
+        # We can generate two types of input files for THGE, defining
+        # the target spectra by period,acceleration, or by
+        # frequency,acceleration.
         if type=='period':
-            zpa=spectra.spectra[-1]
             typ=1
-            line=''
-            # Reorder so that period is ascending
-            per, acc = (list(t) for t in\
-                         zip(*sorted(zip(spectra.period,spectra.spectra))))        
-            for idx in range(spectra.npoints):
+            # by convention, period is sorted in descending
+            # order. Here, we want it in ascending order, hence, the
+            # list is looped from last to first element.
+            for idx in range(spectra.npoints-1,-1,-1):
                 line+='   %11.3f   %11.3f\n'\
-                % (per[idx],acc[idx])
+                % (spectra.period[idx],spectra.spectra[idx])
         elif type=='frequency':
-            zpa=spectra.spectra[-1]
             typ=0
-            line=''
             for idx in range(spectra.npoints):
                 line+='   %11.3f   %11.3f\n'\
                 % (spectra.frequency[idx],spectra.spectra[idx])
         else:
             raise SyntaxError("format of spectrum is badly specified.\
                        Use either type='period', or type='frequency'")		     		 
-        
-        f=open(self.inputfile,'w')
+        # create the text of the file 
         text='%6.3f    %6.3f     1.000     8.000     3.000 \n'%(zpa,duree)
         text+=' 1.100   25\n'
         text+='%7.0f\n 0 0\n'% (seed)
@@ -75,11 +74,12 @@ class ThgeAnalysis():
         text+=line
         text+='    -1.000    -1.000\n'
         text+=' %1d     0.200    34.000     1.000\n'% srpcheck
+        # write in file.
+        f=open(self.inputfile,'w')
         f.write(text)
         f.close()
 
     def ConvertToShake(self,n=8192):
-        #self.th.ReadFile()
         self.th.SetFromFile(self.outputfile,fformat='thge')
         th_shake=PrePostShake.TimeHistoryShake(self.inputfile)
         th_shake.ConvertFromThge(self.th,n)
@@ -147,15 +147,15 @@ def TestThge():
     f.write(text)
     f.close()
     spectra=ResponseSpectra()
-    #spectra.ReadFromCsv(specfile,type='period')
-    # A1=ThgeAnalysis('./test_thge.dat')
-    # seed=100000
-    # A1.GenerInputFile(spectra,seed)
-    # A1.GenerTh()
-    # shake_th=A1.ConvertToShake(n=3024)
-    # thname='test_thge.png'
-    # shake_th.Plot(thname,ylabel='Acceleration (g)')
-    # plt.clf()
+    spectra.ReadFromCsv(specfile,type='period')
+    A1=ThgeAnalysis('./test_thge.dat')
+    seed=100000
+    A1.GenerInputFile(spectra,seed)
+    A1.GenerTh()
+    shake_th=A1.ConvertToShake(n=3024)
+    thname='test_thge.png'
+    shake_th.Plot(thname,ylabel='Acceleration (g)')
+    plt.clf()
 
 def TestThge2():
     specfile='./test_thge.txt'
