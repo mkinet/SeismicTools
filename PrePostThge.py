@@ -112,20 +112,7 @@ class ThThge(TimeHistory):
                 
     def ReadFromThge(self,filename):
         '''read time-history from THGE output'''
-        f=open(filename,'r')
-        # First line is useless.
-        _unused=f.next()
-        # Second line contains number of points and timestep
-        line=f.next()
-        
-        dt=float(line.split()[1])
-        v=[]
-        for x in f:
-            v.append(float(x))            
-        f.close()
-        self.npoints=len(v)
-        self.SetTime(dt=dt)
-        self.SetValues(v)
+        self.ReadFromAcc(filename)
 
         
 def GenerTh(fname):

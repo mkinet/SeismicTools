@@ -438,7 +438,6 @@ class TimeHistoryShake(TimeHistory):
         header+='SEISME HORIZONTAL\n'
         return header
 
-    
 
 class ResponseSpectraShake(ResponseSpectra):
     def __init__(self,frequency=[],spectra=[],damping=0.0,\

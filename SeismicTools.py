@@ -50,16 +50,19 @@ class TimeHistory(object):
     def ReadFromAcc(self,filename):        
         '''Read accelerogram from acc file. The timestep is given on
         the first line. The acceleration is in the first column. The
-        values start at the second line.'''
+        values start at the thirdd line.'''
         f=open(filename,'r')
-        dt=float(f.next().split()[1])
+        # First line is useless.
+        _unused=f.next()
+        # Second line contains number of points and timestep
+        line=f.next()
+        dt=float(line.split()[1])
         v=[]
         for line in f:            
             v.append(float(line))
         self.npoints=len(v)
         self.SetValues(v)
-        time=[dt*i for i in range(self.npoints)]
-        self.SetTime(time)
+        self.SetTime(dt=dt)
 
     def SetValues(self,accel):
         self.accel=np.array(accel,dtype='float64')
