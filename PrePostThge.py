@@ -17,6 +17,8 @@ class ThgeAnalysis():
     def GenerTh(self):
         '''Function to launch THGE.
         Arguments : inputfile : full-path location of inputfile'''
+        # MAK (26/5/2015) : Added the assignment of self.th (through
+        # the funtion ReadThTHGE) at the end of the function.    
         # Change working directory
         self.CleanBeforeRunning()
         if not os.path.exists(self.inputfile):
@@ -101,10 +103,15 @@ class ThgeAnalysis():
         # return targetspec
 
     def ReadThTHGE(self):
+        # MAK : Created 26/5/2015
         self.th.SetFromFile(self.outputfile,fformat='thge')
         
     def GetTh(self):
-        return th
+        # MAK : Created 26/5/2015
+        return self.th
+    
+    def __del__(self):
+        self.CleanBeforeRunning()
             
 class ThThge(TimeHistory):
     def __init__(self,filename=None):
