@@ -465,7 +465,6 @@ class SpectraFamilyShake(SpectraFamily):
         sf=sf.GetSubFamilyDamping(damping)
         if sf.numofspec>1:
             raise Warning('More than one spectra have the specified layer and damping')
-
         return sf[0]
         
     
