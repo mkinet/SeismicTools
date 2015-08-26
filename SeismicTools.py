@@ -3,8 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class TimeHistory(object):
+    ## MAK : 26/08/2015. Added self.name variable
+    ## MAK : Added export function WriteCsv and WriteXls
     def __init__(self,accel=[],dt=0.0,time=[],filename=None,\
-                 fformat=None):
+                 fformat=None,name=''):
         if filename==None:
             self.npoints=len(accel)
             self.SetValues(accel)
@@ -18,6 +20,14 @@ class TimeHistory(object):
                 # analysis. The object is instantiated with an empty
                 # file which is created later on. The call to
                 # SetFromFile should be made after the file creation.
+        self.name=name
+                
+    def SetName(self,name):
+        self.name=name
+    
+    def GetName(self):
+        return self.name
+                
                 
     def SetFromFile(self,filename,fformat):
         options = {None:self.UndefinedFormat,
@@ -93,8 +103,8 @@ class TimeHistory(object):
     def GetValues(self):
         return self.accel
 
-    def Plot(self,filename='',ylabel='',show=0, axis=''):
-        
+    def Plot(self,dir=os.getcwd(),filename=self.name+'.png',ylabel='',show=0, axis=''):
+        outfile=os.path.join(dir,th.name)
         plt.plot(self.time,self.accel)
         plt.xlabel("Time (s)")
         if not ylabel:
@@ -106,10 +116,8 @@ class TimeHistory(object):
 
         if show:
             plt.show()
-        elif not filename:
-            pass
         else:
-            plt.savefig(filename, bbox_inches='tight')
+            plt.savefig(outfile, bbox_inches='tight')
 
     def GetSpectra(self):pass
         # '''Return the response spectra corresponding to the th.
@@ -124,12 +132,46 @@ class TimeHistory(object):
 
     def AccelInGUnits(self,g=9.81):
         self.accel=self.accel/g
+
+    def WriteTh(self,dir=os.getcwd(),filename=self.name,fformat='csv',*args,**kwargs):                
+        options = {None:pass,
+                   'csv':self.WriteThCsv,
+                   'xls':self.WriteThXls
+                    }
+        options[fformat](filename,*args,**kwargs)
+
+    def WriteThCsv(self,dir,filename):
+        fname,ext=os.path.splitext(filename)
+        if ext != '.csv':
+            filename=fname+'.csv'
+        path=os.path.join(dir,filename)
+        f=open(path,'wb')
+        writer=csv.writer(f,dialect='excel')
+        for i,val in enumerate(self.time):
+             writer.writerow([self.time[i],self.accel[i]])
+        f.close()
+
+    def WriteThXls(self,dir,filename):
+        fname,ext=os.path.splitext(filename)
+        if ext not in ['.xls','.xlsx']:
+            filename=fname+'.xls'
+        path=os.path.join(dir,filename)
+        wb = xlwt.Workbook()
+        ws=wb.add_sheet('Sheet1')
+        ws.write(0,0,'Time')
+        ws.write(0,1,'Acceleration')
+         for i,val in enumerate(self.time):
+             ws.write(i+1,0,val)
+             ws.write(i+1,1,self.accel[i])
+        wb.save(path)       
         
     def __del__(self):pass
 
 class TimeHistoryFamily(object):
+    ## MAK : 26/08/2015. class created 
     def __init__(self,family=[]):pass
         self.numofth=0
+        self.namelist=[]
         self.family=[]
         if family:
              for th in family:
@@ -154,17 +196,12 @@ class TimeHistoryFamily(object):
     def Plot(self,dir=os.getcwd(),show=0,**kwargs):
         '''Plot the th in the family in separate graphs'''
         for th in self.family:
-            ## NEED to ADD attrinue name to th class
-            outfile=os.path.join(dir,th.name)
-            th.Plot(**kwargs)
-            if show:
-                plt.show()
-            plt.savefig(outfile,bbox_inches='tight')
+            th.Plot(dir,show=show,**kwargs)
                         
     def AddTimeHistory(self,newth):
         self.family.append(newth)
         self.numofth+=1
-
+        self.namelist.append(newth.name)
 
     # def PlotFamily(self,filename='',ylabel='',show=0,axis=''):
         # sf=self.GetSubFamilyDamping(damping)
