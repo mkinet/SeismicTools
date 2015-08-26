@@ -126,7 +126,59 @@ class TimeHistory(object):
         self.accel=self.accel/g
         
     def __del__(self):pass
+
+class TimeHistoryFamily(object):
+    def __init__(self,family=[]):pass
+        self.numofth=0
+        self.family=[]
+        if family:
+             for th in family:
+                 self.AddTimeHistory(th)
+                
+    def WriteTHXls(self,dir=os.getcwd(),filename=''):pass
+    #     if not filename:    
+    #         filename='ResponseSpectra.xls'
+    #     path=os.path.join(dir,filename)        
+    #     wb = xlwt.Workbook()
+    #     for spectra in self.family:
+    #         sheetname=spectra.GetName()+'_Damp_'+\
+    #           str(spectra.GetDamping())
+    #         ws=wb.add_sheet(sheetname)
+    #         ws.write(0,0,'Frequency')
+    #         ws.write(0,1,'Acceleration')
+    #         for i,val in enumerate(spectra.frequency):
+    #             ws.write(i+1,0,spectra.frequency[i])
+    #             ws.write(i+1,1,spectra.spectra[i])
+    #     wb.save(path)
         
+    def Plot(self,dir=os.getcwd(),show=0,**kwargs):
+        '''Plot the th in the family in separate graphs'''
+        for th in self.family:
+            ## NEED to ADD attrinue name to th class
+            outfile=os.path.join(dir,th.name)
+            th.Plot(**kwargs)
+            if show:
+                plt.show()
+            plt.savefig(outfile,bbox_inches='tight')
+                        
+    def AddTimeHistory(self,newth):
+        self.family.append(newth)
+        self.numofth+=1
+
+
+    # def PlotFamily(self,filename='',ylabel='',show=0,axis=''):
+        # sf=self.GetSubFamilyDamping(damping)
+        # sf.Plot(filename,ylabel,show,axis)
+
+    def __iter__(self):
+        for th in self.family:
+            yield th
+        
+    def __getitem__(self,index):
+        return self.family[index]
+                                    
+    def __del__(self):pass
+                
     
 class ResponseSpectra(object):
     def __init__(self,frequency=[],spectra=[],damping=0.05,\
