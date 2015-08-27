@@ -103,8 +103,10 @@ class TimeHistory(object):
     def GetValues(self):
         return self.accel
 
-    def Plot(self,dir=os.getcwd(),filename=self.name+'.png',ylabel='',show=0, axis=''):
-        outfile=os.path.join(dir,th.name)
+    def Plot(self,dir=os.getcwd(),filename='',ylabel='',show=0, axis=''):
+        if not filename:
+            filename=self.name+'.png'
+        outfile=os.path.join(dir,filename)
         plt.plot(self.time,self.accel)
         plt.xlabel("Time (s)")
         if not ylabel:
@@ -133,14 +135,17 @@ class TimeHistory(object):
     def AccelInGUnits(self,g=9.81):
         self.accel=self.accel/g
 
-    def WriteTh(self,dir=os.getcwd(),filename=self.name,fformat='csv',*args,**kwargs):                
-        options = {None:pass,
+    def WriteTh(self,dir=os.getcwd(),filename='',fformat='csv',*args,**kwargs):
+        ## NOT TESTED!!!
+        if not filename:filename=self.name
+        options = {None:self.WriteThCsv,
                    'csv':self.WriteThCsv,
                    'xls':self.WriteThXls
                     }
-        options[fformat](filename,*args,**kwargs)
+        options[fformat](dir,filename,*args,**kwargs)
 
     def WriteThCsv(self,dir,filename):
+        ## NOT TESTED!!!
         fname,ext=os.path.splitext(filename)
         if ext != '.csv':
             filename=fname+'.csv'
@@ -152,6 +157,7 @@ class TimeHistory(object):
         f.close()
 
     def WriteThXls(self,dir,filename):
+        ## NOT TESTED!!!
         fname,ext=os.path.splitext(filename)
         if ext not in ['.xls','.xlsx']:
             filename=fname+'.xls'
@@ -160,7 +166,7 @@ class TimeHistory(object):
         ws=wb.add_sheet('Sheet1')
         ws.write(0,0,'Time')
         ws.write(0,1,'Acceleration')
-         for i,val in enumerate(self.time):
+        for i,val in enumerate(self.time):
              ws.write(i+1,0,val)
              ws.write(i+1,1,self.accel[i])
         wb.save(path)       
@@ -169,29 +175,44 @@ class TimeHistory(object):
 
 class TimeHistoryFamily(object):
     ## MAK : 26/08/2015. class created 
-    def __init__(self,family=[]):pass
+    def __init__(self,family=[],name=''):
         self.numofth=0
         self.namelist=[]
         self.family=[]
+        self.name=name
         if family:
              for th in family:
                  self.AddTimeHistory(th)
+
+    def WriteThFamily(self,fformat='csv',*args,**kwargs):
+        ## NOT TESTED!!!
+        options = {None:self.WriteThFamilyCsv,
+                   'csv':self.WriteThFamilyCsv,
+                   'xls':self.WriteThFamilyXls
+                    }
+        options[fformat](*args,**kwargs)
+
+
+    def WriteThFamilyCsv(self,*args,**kwargs):
+        for th in self.family:
+            th.WriteTh(fformat=csv,*args,**kwargs)
                 
-    def WriteTHXls(self,dir=os.getcwd(),filename=''):pass
-    #     if not filename:    
-    #         filename='ResponseSpectra.xls'
-    #     path=os.path.join(dir,filename)        
-    #     wb = xlwt.Workbook()
-    #     for spectra in self.family:
-    #         sheetname=spectra.GetName()+'_Damp_'+\
-    #           str(spectra.GetDamping())
-    #         ws=wb.add_sheet(sheetname)
-    #         ws.write(0,0,'Frequency')
-    #         ws.write(0,1,'Acceleration')
-    #         for i,val in enumerate(spectra.frequency):
-    #             ws.write(i+1,0,spectra.frequency[i])
-    #             ws.write(i+1,1,spectra.spectra[i])
-    #     wb.save(path)
+    def WriteThFamilyXls(self,dir=os.getcwd(),filename=''):
+        if not self.name:
+            filename='Accelerograms.xls'
+        else:
+            filename=self.name+'.xls'
+        path=os.path.join(dir,filename)        
+        wb = xlwt.Workbook()
+        for th in self.family:
+            sheetname=th.GetName()
+            ws=wb.add_sheet(sheetname)
+            ws.write(0,0,'Time')
+            ws.write(0,1,'Acceleration')
+            for i,val in enumerate(th.accel):
+                ws.write(i+1,0,th.time[i])
+                ws.write(i+1,1,th.accel[i])
+        wb.save(path)
         
     def Plot(self,dir=os.getcwd(),show=0,**kwargs):
         '''Plot the th in the family in separate graphs'''
