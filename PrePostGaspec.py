@@ -1,31 +1,65 @@
 import re
 from subprocess import call
 from SeismicTools import *
+gaspec='C:/Programs/Gaspec/gaspec.exe'
 
 class Analysis():
-    def __init__(self,filename,name=None):        
+    def __init__(self,pwd=None,name=None,case=None):        
         #Get working directory : Working directory is set to be the
-        #directory where the infile is/will be
-        self.pwd=os.path.dirname(filename)
-        # Initialize DataFile object
-        self.datafiles=DataFile(filename)
-        # Name of the analysis. By default, the name of the input file
-        # without the extension
+        #directory where the script is executed
+        if pwd==None:
+            pwd=os.getcwd()
+        self.pwd=pwd
+        # Name of the analysis.Default to name of the working
+        # directory
         if name==None:
-            name=os.path.splitext(filename)
+            name=self.pwd
         self.name=name        
+        if case==None:
+            case='CAS'
+        self.case=case
+        ## Input TH, or family of TH??
+        self.accelerogram = TimeHistoryGaspec()
         # Initialize results. We mainly focus on the set of spectra
-        # generated and on the transfer function.
-        self.spectralist=SpectraFamilyShake()
-        self.tf=[]
-        # Initialize parser
-        self.parser=FileParser(self.datafiles)
-        
-    def GenInfile(self,accfile,template='GaspecTemplate.in'):pass
-        # ShakeTemplate file must in the directory where python is
-        # running
-        
-    def RunAnalysis(self):pass
+        # generated
+        self.spectralistout=SpectraFamilyGaspec()
+        # Initialize parser. THIS IS USED FOR PPROC.
+        #self.parser=FileParser(self.datafiles)
+    
+    def GenInfile(self,fadd=[]):
+        # 1) input file containing analysis name and case name.
+        f=open('gaspec.dat','w')
+        f.write(self.name+'\n'+self.case+'\n')
+        f.close()
+        # Use a template or hardcode it?
+        # 2)
+        fname='gaspec_'+self.name+'_'+self.case+'.dat'
+        f=open(fname,'w')
+        # Commande START
+        f.write('START\n'+self.name+'\n'+self.case+'\n'\
+                +'UNIT G\n')
+        # Commande FREQUENCE. we set IADD to 0 by default : all
+        # previously computed frequencies are kept and we add the
+        # frequencies in list fadd
+        if len(fadd)>0:
+            f.write('FREQUENCES'+9*' '+'0'+5*' '+str(len(fadd))+'\n')
+            count=0
+            for freq in fadd:
+                f.write(6*' '+str.format("{0:.2f}", freq))        
+                count+=1
+                if count==7:
+                    f.write('\n')
+                    count=0
+                    
+    def RunAnalysis(self):
+        errfile=os.path.join(self.pwd,'gaspec.err')
+        err=open(errfile,'w')
+        call(gaspec,stdout=err)
+        err.close()
+
+    def InitAccel(self):pass
+        # init accelerograms using definition of TH (through csv files
+        # or xls or...)
             
     def GenParamFile(self,fname):pass
         
@@ -61,7 +95,7 @@ class Analysis():
 
         # self.spectralist.PlotPerDamping(damping,filename,ylabel,show,axis)
 
-    def GetSpectra(self,layer):
+    def GetSpectra(self,layer):pass
         # if not self.parser.IsParsed():
         #     self.PostAnalysis()            
         # # Get Spectra from file
@@ -96,7 +130,7 @@ class FileParser():
     def IsParsed(self):
         return self.parsed
         
-    def ReadResultFiles(self):    
+    def ReadResultFiles(self):    pass
         
     def ReadFile(self,file):
         f=open(file)
@@ -212,7 +246,7 @@ class ResponseSpectraGaspec(ResponseSpectra):pass
     #     self.layer=layer
     #     super(ResponseSpectraShake,self).__init__(frequency,spectra,damping,name)
     
-class SpectraFamilyGaspec(SpectraFamily):pass
+class SpectraFamilyGaspec(SpectraFamily):
     
     def __init__(self,family=[]):
         super(SpectraFamilyGaspec,self).__init__(family)
@@ -229,7 +263,10 @@ class SpectraFamilyGaspec(SpectraFamily):pass
         # return sf[0]
         
     
-def Main():pass
+def Main():
+    A1=Analysis(name='TEST',case='CAS')
+    A1.GenInfile(fadd=[0.10,0.119,0.1412563,0.10,0.119,0.1412563,0.10,0.119,0.1412563,0.10,0.119,0.1412563])
+    #A1.RunAnalysis()
             
 if __name__=="__main__":
     Main()
