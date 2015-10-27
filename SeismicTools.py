@@ -8,7 +8,6 @@ class TimeHistory(object):
     def __init__(self,accel=[],dt=0.0,time=[],filename=None,\
                  fformat=None,name=''):
         if filename==None:
-            self.npoints=len(accel)
             self.SetValues(accel)
             self.SetTime(time,dt)
         else:
@@ -76,6 +75,7 @@ class TimeHistory(object):
 
     def SetValues(self,accel):
         self.accel=np.array(accel,dtype='float64')
+        self.npoints=len(accel)
         
     def SetTime(self,time=[],dt=0.0):
         if time==[] and dt<1E-10:
