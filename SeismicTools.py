@@ -323,7 +323,7 @@ class ResponseSpectra(object):
 
     def WriteCsv(self,dir=os.getcwd(),filename=''):
         if not filename:
-            filename=self.name+'Damp_'+str(self.damping)+'.csv'
+            filename=self.name+'_Damp_'+str(self.damping)+'.csv'
         path=os.path.join(dir,filename)
         f=open(path,'wb')
         writer=csv.writer(f,dialect='excel')
