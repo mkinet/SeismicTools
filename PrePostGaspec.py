@@ -4,7 +4,13 @@ from SeismicTools import *
 gaspec='C:/Programs/Gaspec/gaspec.exe'
 
 class Analysis():
-    def __init__(self,pwd=None,name=None,case=None,THinputlist=[]):
+    def __init__(self,amo=None,pwd=None,name=None,case=None,THinputlist=[]):
+        # Damping is needed
+        if amo==None:
+            print('WARNING: At least one damping value should be\
+             specified. A damping of 5% is used by default.')
+            amo=[0.05]
+        self.amo=amo
         #Get working directory : Working directory is set to be the
         #directory where the script is executed
         if pwd==None:
@@ -73,8 +79,7 @@ class Analysis():
         f.write(' 1.\n')
         # Now we need to write the values of the accelerograms :
         for accel in self.accelerograms:
-            f.write(#str.format("{:5s}",accel.name)+\
-                    str.format("{:5s}","E999")+\
+            f.write(str.format("{:5s}",accel.name[0:4])+\
                     str.format("{:5d}",1)+\
                     str.format("{:5d}",1)+\
                     str.format("{:5d}",accel.npoints)+\
@@ -121,8 +126,7 @@ class Analysis():
                 str.format("{:10.0F}",100.0)+'\n')
         # carte 3 et suivantes
         for accel in self.accelerograms:
-            f.write(#str.format("{:5s}",accel.name)+\
-                    str.format("{:5s}","E999")+\
+            f.write(str.format("{:5s}",accel.name[0:4])+\
                     str.format("{:5d}",1)+\
                     str.format("{:5d}",1)+\
                     str.format("{:5d}",0)+'\n')
@@ -141,33 +145,81 @@ class Analysis():
     def InitAccel(self):pass
         # init accelerograms using definition of TH (through csv files
         # or xls or...)
-            
-    def GenParamFile(self,fname):pass
-        
+                
     def PostAnalysis(self):pass
                 
-    def PostSpectra(self):pass
-
-    def WriteSpectraCsv(self,dir=os.getcwd()):pass
+    def PostSpectra(self):
+        '''
+        This functions reads the spectra computed by GASPEC,
+        corresponding to the accelerograms in input.
+        '''
+        fname='gaspec_'+self.name+'_'+self.case+'_spacc.dat'
+        # 1) test if spacc file exists, if not issue an error.
+        # 2) open the file
+        try:
+            f=open(fname,'r')
+        except IOError:
+            raise IOError('Something went wrong : Result files\
+             does not exist') 
+                
+        # 3) Loop over the input spectra and search for the name in the
+        # output file
+        for accel in self.accelerograms:
+            pattern=' '+accel.name[0:4]+' '
+            for line in f:
+                match=re.search(pattern,line)
+        # 4) once name is found, read the spectra:                
+                if match:
+                    # number of values to read
+                    nval=int(line.strip().split()[2])
+                    freq=[]
+                    acc=[[] for x in range(len(self.amo))]
+                    for x in range(nval):
+                        couple=next(f).strip().split()
+                        freq.append(couple[0])
+                        for i in (range(len(self.amo))):
+                            acc[i].append(couple[i+1])
+        # 5) create a spectra object and store it in the family object
+                    for i in (range(len(self.amo))):
+                        self.spectralistout.AddSpectra(\
+                            ResponseSpectra(frequency=freq,\
+                                            spectra=acc[i],
+                                            damping=self.amo[i],
+                                            name=accel.name))
+                    #get out of the most inner for loop.
+                    break
+        # 6) Close the file
+        f.close()
+        # 6) Outputs in the format requested in parameter (figure or
+        # csv, or xls)
+        
+    def WriteSpectraCsv(self):
         # Uses the default filename for now...
         # write results in csv files
-        # for spectra in self.spectralist:
-        #     spectra.WriteSpectraCsv(dir)
+        for spectra in self.spectralistout:
+             spectra.WriteSpectraCsv(self.pwd)
 
-    def WriteSpectraXls(self,filename=None,speclist=None):pass
-        # if filename is None:
-        #     filename=self.name+'.xls'
 
-        # if speclist is None:
-        #     speclist=self.spectralist
+    def WriteSpectraXls(self):
+        filename=self.name+'_'+self.case+'.xls'
+        self.spectralistout.WriteSpectraXls(filename=filename)        
+            
 
-        # speclist.WriteSpectraXls(self.pwd,filename)
+    def PlotAllSpectra(self,show=0,ylabel='',axis=''):
+        '''Plot all spectra in a figure'''
+        filename=self.name+'_'+self.case+'_spacc.png'
+        self.spectralistout.Plot(dir=self.pwd,
+                                 filename=filename,show=show,
+                                 ylabel=ylabel,axis=axis)
 
-    def PlotSpectra(self,filename=None,ylabel='',show=0,axis=''):
-        if filename is None:
-            filename=self.name+'.png'
-        self.spectralist.Plot(self.pwd,filename,ylabel,show,axis)
-
+    def PlotIndSpectra(self,show=0,ylabel='',axis=''):
+        for spectra in self.spectralistout:
+            filename=self.name+'_'+spectra.GetName()\
+            +'_D='+str(spectra.damping)+'.png'
+            spectra.Plot(filename=filename,show=show,
+                                 ylabel=ylabel,axis=axis) 
+            plt.clf()
+            
     def PlotSpectraDamping(self,damping,filename=None,\
                            ylabel='',show=0, axis=''):pass
                            
@@ -175,16 +227,6 @@ class Analysis():
         #     filename=self.name+'.png'
 
         # self.spectralist.PlotPerDamping(damping,filename,ylabel,show,axis)
-
-    def GetSpectra(self,layer):pass
-        # if not self.parser.IsParsed():
-        #     self.PostAnalysis()            
-        # # Get Spectra from file
-        # if self.spec.numofspec==0:
-        #     self.parser.GetSpectra(self.spectralist)
-
-        # return self.spectralist.GetSubFamilyLayer(layer)
-        
                                 
     def CleanWorkDir(self):pass
         # for f in os.listdir(self.pwd):
@@ -261,64 +303,15 @@ class DataFile():
         print 'Input file:\n'+self.infile+'\n'
 
 class TimeHistoryGaspec(TimeHistory):
-    def __init__(self,filename=None,fformat=None):pass
-        # Test extension
-        # [root,ext]=os.path.splitext(filename)
-        # if ext!='eqc':
-        #     self.filename=root+'.eqc'
-        # self.motherfile=filename
-        # super(TimeHistoryGaspec, self).__init__(filename=filename,\
-        #                                        fformat=fformat)
+    def __init__(self,accel=[],dt=0.0,time=[],filename=None,\
+                 fformat=None,name='E999'):
+        super(TimeHistoryGaspec, self).__init__(accel=accel,\
+                                                dt=dt,\
+                                                time=time,\
+                                                filename=filename,\
+                                                fformat=fformat,\
+                                                name=name)
         
-    def ConvertFromThge(self,th,n=8192):pass
-        # self.motherfile=th.filename
-        # self.accel=th.accel
-        # self.npoints=th.npoints
-        # self.dt=th.dt
-        # self.WriteThShake(n)
-    
-    def WriteThGaspec(self,n=8192):
-        
-        '''Write time history in Gaspec format. The parameter n is
-        used to specify the number of points that the time-history
-        must have. For shake use, it has to be a power of 2. The
-        default is set to 8192.'''
-
-        #Extend the time serie if needed :
-        if self.npoints!=n:
-            self.AdjustLength(n,check=False)
-            
-        f=open(self.filename,'w')    
-        header=self.ShakeHeader()
-        f.write(header)
-        for i in range(int(math.ceil(self.npoints/8.0))):                
-                b=self.accel[i*8:i*8+8]
-                self.WriteLine(f,b)    
-        f.close()
-
-    def WriteLine(self,f,b):pass
-        # '''Write a line of 8 numbers in the file f'''
-        # for val in np.nditer(b):
-        #     if val>=0:
-        #         f.write('')
-        #     f.write('%9.6f' % val)
-        # f.write('\n')
-
-    def ShakeHeader(self):pass
-        # '''Create Header file for shake accelerogram file'''
-        # header='Source File: '
-        # header+=self.motherfile+'\n'
-        # header+='SHAKE2000 Conversion:'+2*' '
-        # header+=str(self.npoints)+2*' '
-        # header+=str(self.dt)+2*' '
-        # header+='5'+2*' '+'8'+2*' '+'9'+2*' '+'(8f9.6)'+'\n'
-        # header+="Acceleration Units: (g's) - No. Values: "
-        # header+=str(self.npoints)+' - Time Step: '
-        # header+=str(self.dt)+' (secs)\n'
-        # header+='Data Format: 8f9.6 - No. Header Lines:  5\n'
-        # header+='SEISME HORIZONTAL\n'
-        # return header
-
 
 class ResponseSpectraGaspec(ResponseSpectra):pass
     # def __init__(self,frequency=[],spectra=[],damping=0.0,\
@@ -345,10 +338,18 @@ class SpectraFamilyGaspec(SpectraFamily):
         
     
 def Main():
-    TH1=TimeHistory(accel=[0.0,0.1,0.2,0.3,0.2,0.1,0.0,-0.1,-0.2,-0.2,-0.1,0.0,0.6],dt=0.1)
-    A1=Analysis(name='TEST',case='CAS',THinputlist=[TH1])
-    A1.GenInfile(amo=[0.02])
+    TH1=TimeHistoryGaspec(name='E1',accel=[0.0,0.1,0.2,0.3,0.2,0.1,0.0,-0.1,-0.2,-0.2,-0.1,0.0,0.6],dt=0.1)
+    TH2=TimeHistoryGaspec(name='E2',accel=[0.0,0.1,0.2,0.3,0.2,0.1,0.0,-0.1,-0.2,-0.2,-0.1,0.0,0.6],dt=0.2)
+    A1=Analysis(amo=[0.02,0.05],
+                name='TEST',
+                case='CAS',
+                THinputlist=[TH1,TH2])
+    A1.GenInfile() 
     A1.RunAnalysis()
+    A1.PostSpectra()
+    A1.WriteSpectraCsv()
+    A1.PlotIndSpectra()
+    A1.WriteSpectraXls()
             
 if __name__=="__main__":
     Main()
