@@ -142,9 +142,15 @@ class Analysis():
         call(gaspec,stdout=err)
         err.close()
 
-    def InitAccel(self):pass
-        # init accelerograms using definition of TH (through csv files
-        # or xls or...)
+    def InitAccel(self,filelist):
+        'Initialize Accelerograms through a list of files'
+        for filename in filelist:
+            fname,ext=os.path.splitext(filename)
+            if ext != '.csv':
+                raise IOError('Accelerograms can only be defined\
+                               trough csv files')
+            TH=TimeHistory(name=fname,filename=filename,fformat='csv')
+            self.accelerograms.AddTimeHistory(TH)
                 
     def PostAnalysis(self):pass
                 
@@ -293,14 +299,6 @@ class FileParser():
         # #     print spec.name, spec.damping
             
                 
-                                            
-class DataFile():
-    def __init__(self,filename):pass
-
-
-    def Summarize(self):
-        '''For Debugging purposes only'''
-        print 'Input file:\n'+self.infile+'\n'
 
 class TimeHistoryGaspec(TimeHistory):
     def __init__(self,accel=[],dt=0.0,time=[],filename=None,\
@@ -337,13 +335,15 @@ class SpectraFamilyGaspec(SpectraFamily):
         # return sf[0]
         
     
-def Main():
+def Test():
     TH1=TimeHistoryGaspec(name='E1',accel=[0.0,0.1,0.2,0.3,0.2,0.1,0.0,-0.1,-0.2,-0.2,-0.1,0.0,0.6],dt=0.1)
     TH2=TimeHistoryGaspec(name='E2',accel=[0.0,0.1,0.2,0.3,0.2,0.1,0.0,-0.1,-0.2,-0.2,-0.1,0.0,0.6],dt=0.2)
+    TH1.WriteTh()
+    TH2.WriteTh()
     A1=Analysis(amo=[0.02,0.05],
                 name='TEST',
-                case='CAS',
-                THinputlist=[TH1,TH2])
+                case='CAS')
+    A1.InitAccel(['E1.csv','E2.csv'])
     A1.GenInfile() 
     A1.RunAnalysis()
     A1.PostSpectra()
@@ -352,4 +352,4 @@ def Main():
     A1.WriteSpectraXls()
             
 if __name__=="__main__":
-    Main()
+    Test()
