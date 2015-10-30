@@ -137,18 +137,25 @@ class TimeHistory(object):
 
     def WriteTh(self,dir=os.getcwd(),filename='',fformat='csv',*args,**kwargs):
         ## NOT TESTED!!!
-        if not filename:filename=self.name
+        if not filename:
+            filename=self.name
         options = {None:self.WriteThCsv,
                    'csv':self.WriteThCsv,
                    'xls':self.WriteThXls
                     }
         options[fformat](dir,filename,*args,**kwargs)
 
-    def WriteThCsv(self,dir,filename):
+    def WriteThCsv(self,dir=os.getcwd,filename=None):
         ## NOT TESTED!!!
-        fname,ext=os.path.splitext(filename)
-        if ext != '.csv':
-            filename=fname+'.csv'
+        if filename!=None:
+            fname,ext=os.path.splitext(filename)
+            if ext != '.csv':
+                filename=fname+'.csv'
+        else:
+            if self.name:
+                filename=self.name+'.csv'
+            else:
+                filename='timehistory.csv'
         path=os.path.join(dir,filename)
         f=open(path,'wb')
         writer=csv.writer(f,dialect='excel')
