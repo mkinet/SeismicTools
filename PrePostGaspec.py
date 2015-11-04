@@ -32,7 +32,7 @@ class Analysis():
         # Initialize parser. THIS IS USED FOR PPROC.
         #self.parser=FileParser(self.datafiles)
     
-    def GenInfile(self,fadd=[],amo=[]):
+    def GenInfile(self,fadd=[],amo=[],multfact=1.0):
         # 1) input file containing analysis name and case name.
         f=open('gaspec.dat','w')
         f.write(self.name+'\n'+self.case+'\n')
@@ -76,7 +76,7 @@ class Analysis():
         f.write(str.format("{:15s}",'INPUT')+str.format("{:5d}",0)\
                 +'\n')
         # This is a multiplicative factor. We hardcode it to 1.
-        f.write(' 1.\n')
+        f.write(str(multfact)+'\n')
         # Now we need to write the values of the accelerograms :
         for accel in self.accelerograms:
             f.write(str.format("{:5s}",accel.name[0:4])+\
@@ -217,6 +217,8 @@ class Analysis():
         self.spectralistout.Plot(dir=self.pwd,
                                  filename=filename,show=show,
                                  ylabel=ylabel,axis=axis)
+        plt.clf()
+
 
     def PlotIndSpectra(self,show=0,ylabel='',axis=''):
         for spectra in self.spectralistout:
