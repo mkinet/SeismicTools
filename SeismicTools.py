@@ -89,7 +89,7 @@ class TimeHistory(object):
             if self.npoints!=len(time):
                 raise SyntaxError('time and frequency vectors must have the same length')
             self.time=np.array(time,dtype='float64')
-            self.dt=self.time[-1]/(self.npoints-1)
+            self.dt=self.time[1]-self.time[0]
             
     def GetFilename(self):
         return self.filename
@@ -430,7 +430,183 @@ class ResponseSpectra(object):
         self.frequency=spec.frequency
         self.damping=spec.damping
         self.npoints=spec.npoints
+        
 
+    def Broaden0(self):
+        '''Broadening of spectra according to R.G.1.122'''
+        specel=[0]*self.npoints
+        option = {1:self.is_increasing,
+                  2:self.is_decreasing,
+                  3:self.is_peak,
+                  4:self.is_valley}
+            
+        # Compute initial sign of gradient
+        grad_0=np.sign(self.spectra[1]-self.spectra[0])
+        for j,freq in enumerate(self.frequency):
+            print j,freq
+            try:
+                grad=np.sign(self.spectra[j+1]-self.spectra[j])
+            except IndexError:
+                grad=grad_0
+            print grad
+            if grad_0==grad:
+                if grad>=0:
+                    print 'increasing'
+                    specel=option[1](specel,j)
+                else:
+                    print 'decreasing'
+                    specel=option[2](specel,j)
+            else:
+                if grad<0:
+                    print 'peak'
+                    specel=option[3](specel,j)
+                else:
+                    print 'valley'
+                    specel=option[4](specel,j)
+            grad_0=grad
+                    
+        self.SetSpectra(specel)
+                    
+    def is_increasing(self,spec,j):
+        if j==(len(spec)-1):
+            spec[j]=self.spectra[j]
+        elif spec[j]==0:
+            k=0
+            fac=1./1.15
+            try:
+                while (self.frequency[j]>self.frequency[j+k+1]*fac):
+                    k=k+1
+            except IndexError:
+                k=k-1
+            print 'k=',k
+            fj=self.frequency[j]
+            fm=self.frequency[j+k]
+            fk=self.frequency[j+k+1]
+            sm=self.spectra[j+k]
+            sk=self.spectra[j+k+1]
+            spec[j]=sm+(sk-sm)*(fj-fm*fac)/(fk*fac-fm*fac)
+        print 'spec[j]=',spec[j] 
+        return spec 
+
+    def is_decreasing(self,spec,j):
+        if j==0 or j==(len(spec)-1):
+            spec[j]=self.spectra[j]
+        # Added this test for the case where we passed a peak, the
+        # values are then set to the values of the peak and nothing
+        # has to be done. Thus we only compute a new values if the
+        # broadened spectra is still equal to 0. It is a bit ugly but
+        # didn't know how else to do this...
+        elif spec[j]==0:
+            k=0
+            fac=1.15
+            try:
+                while (self.frequency[j]>self.frequency[j+k+1]*fac):
+                    k=k+1
+            except IndexError:
+                k=k-1
+
+            fj=self.frequency[j]
+            fi=self.frequency[j-1]
+            fac=1.15
+            sj=self.spectra[j]
+            si=self.spectra[j-1]
+            spec[j]=sj+(sj-si)*(fj-fj*fac)/(fj*fac-fi*fac)
+        print 'spec[j]=',spec[j] 
+        return spec
+
+    def is_peak(self,spec,j):
+        fj=self.frequency[j]
+        fac=1.15        
+        for i,freq in enumerate(self.frequency):
+            if freq>fj/fac and freq<fj*fac:
+                spec[i]=self.spectra[j]
+        print 'spec[j]=',spec[j]             
+        return spec
+
+    def is_valley(self,spec,j):
+        fj=self.frequency[j]
+        fk=self.frequency[j+1]
+        fac=1/1.15
+        sj=self.spectra[j]
+        sk=self.spectra[j+1]
+        spec[j]=sj+(sk-sj)*(fj-fj*fac)/(fk*fac-fj*fac)
+        print 'spec[j]=',spec[j] 
+        return spec 
+    def Broaden(self):
+        '''Broadening of spectra according to R.G.1.122'''
+        ## THIS IS DISGUSTING. JUST AN ADAPTATION FROM GASPEC. No time
+        ## to do better.
+        fp1=1.15
+        fm1=1/fp1
+        specel=[0]*self.npoints
+        am=self.spectra[0]
+        ak=self.spectra[1]
+        k=1
+        if(ak >= am):
+            fac=fm1
+            grad=1.
+            i=0
+        else:
+            fac=fp1
+            grad=-1
+            specel[0]=am
+            i=1
+        ym=fac*self.frequency[0]
+        yk=fac*self.frequency[1]
+        while i<len(self.frequency)-1:
+            print 'i=',i+1,'k=',k+1
+            xi=self.frequency[i]
+            if xi>yk:
+                ro=grad*(self.spectra[k+1]-ak)
+                if ro>=0:
+                    ym=yk
+                    am=ak
+                    k=k+1
+                    try:
+                        yk=fac*self.frequency[k]
+                    except IndexError:                        
+                        yk=self.frequency[self.npoints-1]
+                    ak=self.spectra[k]                
+                else:
+                    grad=-grad
+                    if grad>0:
+                        #valley
+                        fac=fm1
+                        yk=fac*self.frequency[k]
+                        for j in range(1,k+1):
+                            i=k-j
+                            if self.frequency[i]<=yk:
+                                i=i+1
+                                ym=yk
+                                am=ak
+                                k=k+1
+                                try:
+                                    yk=fac*self.frequency[k]
+                                except IndexError:
+                                    yk=self.frequency[self.npoints-1]
+                                ak=self.spectra[k] 
+                                break
+                    else:
+                        #peak
+                        fac=fp1
+                        for j in range(i,k+1):
+                            if specel[j]<ak:
+                                specel[j]=ak
+                        i=k+1
+                        ym=self.frequency[k]
+                        yk=fac*ym
+                        am=ak                      
+            else:
+                ei=am+(ak-am)*(xi-ym)/(yk-ym)
+                print 'i=',i+1,'ei=',ei
+                if ei>specel[i]:
+                    specel[i]=ei
+                i=i+1
+        specel[self.npoints-1]=self.spectra[self.npoints-1]
+        self.SetSpectra(specel)
+                                        
+
+            
     def __del__(self):pass
 
 class SpectraFamily(object):
@@ -558,5 +734,60 @@ class SpectraFamily(object):
         
 def Main():
     th=TimeHistory(filename='000042xa_acc.acc',fformat='acc')
+
+def Test_Elarg1():
+    S1=ResponseSpectra(frequency=[
+        00.2000,00.3000,00.4000,00.5000,00.6000,00.7000,00.8000,\
+        00.9000,01.0000,01.1000,01.2000,01.3000,01.4000,01.5000,\
+        01.7000,01.8000,01.8500,01.9000,02.0000,\
+        02.1000,02.2000,02.3000,02.4000,02.5000,02.6000,02.7000,\
+        02.8000,02.9000,03.0000,03.1500,03.3000,03.4500,03.5000,\
+        03.6000,03.8000,04.0000,04.2000,04.4000,04.6000,04.8000,\
+        05.0000,05.2500,05.3000,05.5000,05.7500,06.0000,06.2500,\
+        06.3000,06.5000,06.7500,07.0000,07.2500,07.4000,07.5000,\
+        07.7500,07.9000,08.0000,08.5000,09.0000,09.5000,10.0000,\
+        10.5000,11.0000,11.5000,12.0000,12.5000,13.0000,13.5000,\
+        14.0000,14.5000,15.0000,16.0000,17.0000,18.0000,20.0000,\
+        22.0000,25.0000,28.0000,31.0000,34.0000,38.0000,42.0000,\
+        46.0000,50.0000],spectra=[
+        5.9041E-02,1.2484E-01,1.5479E-01,2.0932E-01,2.8246E-01,\
+        3.6510E-01,4.1445E-01,5.2034E-01,5.9472E-01,7.1328E-01,\
+        7.8191E-01,1.0298E+00,1.2317E+00,1.2566E+00,\
+        1.2940E+00,1.6526E+00,1.8877E+00,1.6674E+00,\
+        1.6638E+00,1.8439E+00,2.1628E+00,1.8578E+00,1.8118E+00,\
+        1.7850E+00,1.8978E+00,1.3877E+00,1.5485E+00,1.3071E+00,\
+        1.2767E+00,9.8110E-01,1.0161E+00,8.3859E-01,8.7550E-01,\
+        6.9499E-01,6.7516E-01,6.1832E-01,5.8253E-01,5.2891E-01,\
+        4.8721E-01,4.2382E-01,3.9530E-01,4.2925E-01,4.0510E-01,\
+        3.5463E-01,3.5300E-01,3.3540E-01,3.2400E-01,3.3740E-01,\
+        3.5991E-01,3.5687E-01,3.4079E-01,3.5719E-01,3.4166E-01,\
+        3.4368E-01,3.6472E-01,3.5868E-01,3.5110E-01,3.2518E-01,\
+        3.2144E-01,3.2067E-01,3.0912E-01,2.9732E-01,2.8860E-01,\
+        2.6941E-01,2.6017E-01,2.5841E-01,2.5071E-01,2.4242E-01,\
+        2.3724E-01,2.4242E-01,2.3199E-01,2.3894E-01,2.3233E-01,\
+        2.3414E-01,2.3824E-01,2.3597E-01,2.2823E-01,2.2925E-01,\
+        2.2715E-01,2.2457E-01,2.2168E-01,2.2155E-01,2.2222E-01,\
+        2.2270E-01],name='test')
+    S1.Broaden()
+    S1.WriteSpectraCsv()
+
+def Test_Elarg():
+    S1=ResponseSpectra(frequency=[0.2,1.,1.1,1.2,\
+                                  1.3,1.4,1.5,2.0,\
+                                  8.,10.,50.],\
+                       spectra=[5.9041E-02,5.9500E-01,7.1300E-01,\
+                                  7.2000E-01,1.0300E+00,1.23,1.26,\
+                                  1.6638E+00,0.3511,\
+                                  0.3091E+00,0.2227E+00],name='test')
+
+    S1.Broaden()
+    S1.WriteSpectraCsv()
+
+    
 if __name__=="__main__":
-    Main()
+    Test_Elarg1()
+
+
+
+
+
