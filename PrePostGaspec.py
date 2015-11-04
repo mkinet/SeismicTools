@@ -348,6 +348,7 @@ def Test():
     A1.RunAnalysis()
     A1.PostSpectra()
     A1.WriteSpectraCsv()
+    A1.PlotAllSpectra()
     A1.PlotIndSpectra()
     A1.WriteSpectraXls()
             

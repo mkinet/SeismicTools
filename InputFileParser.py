@@ -29,9 +29,14 @@ class InputFileParser():
     def ParseFile(self):
         fp=open(self.infile,'r')
         try:
+            # need to mark down the init position in the file, in case
+            # the [section] keyword is missing.
+            pos=fp.tell()
             self.parser.readfp(fp)
         except ConfigParser.MissingSectionHeaderError:
-            f=FakeSecHead(fp)
+            # go back to beginning of the file
+            fp.seek(pos)
+            f=FakeSecHead(fp)        
             self.parser.readfp(f)
            
         fp.close()
