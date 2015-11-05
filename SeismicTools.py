@@ -431,7 +431,7 @@ class ResponseSpectra(object):
         self.damping=spec.damping
         self.npoints=spec.npoints
         
-
+    # THIS DOESN'T WORK. SEE THE Broaden FUNCTION BELOW.
     def Broaden0(self):
         '''Broadening of spectra according to R.G.1.122'''
         specel=[0]*self.npoints
@@ -531,11 +531,12 @@ class ResponseSpectra(object):
         sk=self.spectra[j+1]
         spec[j]=sj+(sk-sj)*(fj-fj*fac)/(fk*fac-fj*fac)
         print 'spec[j]=',spec[j] 
-        return spec 
+        return spec
+    
     def Broaden(self):
         '''Broadening of spectra according to R.G.1.122'''
         ## THIS IS DISGUSTING. JUST AN ADAPTATION FROM GASPEC. No time
-        ## to do better.
+        ## to do better for now...
         fp1=1.15
         fm1=1/fp1
         specel=[0]*self.npoints
@@ -553,20 +554,29 @@ class ResponseSpectra(object):
             i=1
         ym=fac*self.frequency[0]
         yk=fac*self.frequency[1]
-        while i<len(self.frequency)-1:
-            print 'i=',i+1,'k=',k+1
+        while i<(len(self.frequency)-1):
+            # print len(self.frequency)
+            # print 'i=',i,'k=',k
             xi=self.frequency[i]
             if xi>yk:
-                ro=grad*(self.spectra[k+1]-ak)
+                ## Not sure this is correct. Had to add this to avoid
+                ## errors...
+                try:
+                    ro=grad*(self.spectra[k+1]-ak)
+                except IndexError:
+                    ro=grad*(self.spectra[k]-ak)
                 if ro>=0:
                     ym=yk
                     am=ak
                     k=k+1
+                    ## Here again, there are index problems. this
+                    ## should be cleaner
                     try:
                         yk=fac*self.frequency[k]
+                        ak=self.spectra[k]                
                     except IndexError:                        
                         yk=self.frequency[self.npoints-1]
-                    ak=self.spectra[k]                
+                        ak=self.spectra[self.npoints-1]
                 else:
                     grad=-grad
                     if grad>0:
@@ -598,7 +608,6 @@ class ResponseSpectra(object):
                         am=ak                      
             else:
                 ei=am+(ak-am)*(xi-ym)/(yk-ym)
-                print 'i=',i+1,'ei=',ei
                 if ei>specel[i]:
                     specel[i]=ei
                 i=i+1
@@ -647,8 +656,7 @@ class SpectraFamily(object):
             plt.savefig(outfile,bbox_inches='tight')
 
                     
-    def Envelope(self):
-            
+    def Envelope(self):            
         '''Compute the enveloppe of the spectra family. For the moment it considers
         that all spectra from the list have the same frequency range
         '''
@@ -723,6 +731,10 @@ class SpectraFamily(object):
         sf=self.GetSubFamilyDamping(damping)
         sf.Plot(filename,ylabel,show,axis)
 
+    def Broaden(self):
+        for spectra in self.family:
+            spectra.Broaden()
+            
     def __iter__(self):
         for spectra in self.family:
             yield spectra
@@ -771,23 +783,7 @@ def Test_Elarg1():
     S1.Broaden()
     S1.WriteSpectraCsv()
 
-def Test_Elarg():
-    S1=ResponseSpectra(frequency=[0.2,1.,1.1,1.2,\
-                                  1.3,1.4,1.5,2.0,\
-                                  8.,10.,50.],\
-                       spectra=[5.9041E-02,5.9500E-01,7.1300E-01,\
-                                  7.2000E-01,1.0300E+00,1.23,1.26,\
-                                  1.6638E+00,0.3511,\
-                                  0.3091E+00,0.2227E+00],name='test')
-
-    S1.Broaden()
-    S1.WriteSpectraCsv()
-
-    
 if __name__=="__main__":
     Test_Elarg1()
-
-
-
 
 
