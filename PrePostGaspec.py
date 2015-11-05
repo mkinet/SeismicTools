@@ -145,16 +145,15 @@ class Analysis():
     def InitAccel(self,filelist):
         'Initialize Accelerograms through a list of files'
         for filename in filelist:
-            fname,ext=os.path.splitext(filename)
+            
+            fname,ext=os.path.splitext(os.path.split(filename)[1])
             if ext != '.csv':
-                raise IOError('Accelerograms can only be defined\
-                               trough csv files')
+                raise IOError('Accelerograms can only be defined'
+                               ' trough csv files')
             TH=TimeHistory(name=fname,filename=filename,fformat='csv')
             self.accelerograms.AddTimeHistory(TH)
-                
-    def PostAnalysis(self):pass
-                
-    def PostSpectra(self):
+            
+    def PostSpectra(self,broaden=False):
         '''
         This functions reads the spectra computed by GASPEC,
         corresponding to the accelerograms in input.
@@ -195,10 +194,10 @@ class Analysis():
                     #get out of the most inner for loop.
                     break
         # 6) Close the file
-        f.close()
-        # 6) Outputs in the format requested in parameter (figure or
-        # csv, or xls)
-        
+        f.close()        
+        if broaden:
+            self.Broaden()
+            
     def WriteSpectraCsv(self):
         # Uses the default filename for now...
         # write results in csv files
@@ -236,23 +235,38 @@ class Analysis():
 
         # self.spectralist.PlotPerDamping(damping,filename,ylabel,show,axis)
                                 
-    def CleanWorkDir(self):pass
-        # for f in os.listdir(self.pwd):
-        #     filename=os.path.join(self.pwd,f)
-        #     # Remove error files if empty
-        #     if f.endswith('.err'):
-        #         if os.stat(filename)[6]==0:
-        #             os.remove(filename)
-        #     # Remove output files if empty                
-        #     if f.endswith('.out'):
-        #         if os.stat(filename)[6]==0:
-        #             os.remove(filename)
-
+    def CleanWorkDir(self):
+        for f in os.listdir(self.pwd):
+            filename=os.path.join(self.pwd,f)
+            # Remove error files if empty
+            if f.endswith('.err'):
+                if os.stat(filename)[6]==0:
+                    os.remove(filename)
+            # Remove output files if empty                
+            if f.endswith('.out'):
+                if os.stat(filename)[6]==0:
+                    os.remove(filename)
+            # Remove Fortran Binary files
+            if f.endswith('.78'):
+                os.remove(filename)
+            # Remove gaspec output files
+            if f.endswith('.jnl'):
+                os.remove(filename)
+            if f=='gaspec.dat':
+                os.remove(filename)
+            if f.endswith('_spacc.dat'):
+                os.remove(filename)
+            if f.endswith('.lis'):
+                os.remove(filename)                
+            if f=='gaspec_TEST_CAS.dat':
+                os.remove(filename)
+                
+    def Broaden(self):
+        self.spectralistout.Broaden()
+        
     def __del__(self):pass
-#        self.CleanWorkDir()
 
-
-                    
+                            
 class FileParser():
     def __init__(self,files):
         self.files=files
@@ -348,7 +362,7 @@ def Test():
     A1.InitAccel(['E1.csv','E2.csv'])
     A1.GenInfile() 
     A1.RunAnalysis()
-    A1.PostSpectra()
+    A1.PostSpectra(broaden=True)
     A1.WriteSpectraCsv()
     A1.PlotAllSpectra()
     A1.PlotIndSpectra()
