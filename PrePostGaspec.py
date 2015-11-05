@@ -4,7 +4,7 @@ from SeismicTools import *
 gaspec='C:/Programs/Gaspec/gaspec.exe'
 
 class Analysis():
-    def __init__(self,amo=None,pwd=None,name=None,case=None,THinputlist=[]):
+    def __init__(self,amo=None,pwd=None,name=None,case=None,THinputlist=[],exe=gaspec):
         # Damping is needed
         if amo==None:
             print('WARNING: At least one damping value should be\
@@ -31,6 +31,8 @@ class Analysis():
         self.spectralistout=SpectraFamilyGaspec()
         # Initialize parser. THIS IS USED FOR PPROC.
         #self.parser=FileParser(self.datafiles)
+        # Path to gaspec executable
+        self.exe=exe
     
     def GenInfile(self,fadd=[],amo=[],multfact=1.0):
         # 1) input file containing analysis name and case name.
@@ -139,7 +141,7 @@ class Analysis():
     def RunAnalysis(self):
         errfile=os.path.join(self.pwd,'gaspec.err')
         err=open(errfile,'w')
-        call(gaspec,stdout=err)
+        call(self.exe,stderr=err)
         err.close()
 
     def InitAccel(self,filelist):
